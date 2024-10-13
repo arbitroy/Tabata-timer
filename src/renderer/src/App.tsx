@@ -170,7 +170,7 @@ const App: React.FC = () => {
         })
       }, 1000)
     }
-    return () => {
+    return (): void => {
       if (interval) clearInterval(interval)
     }
   }, [showCountdown, playSound])
@@ -212,7 +212,7 @@ const App: React.FC = () => {
         })
       }, 1000)
     }
-    return () => {
+    return (): void => {
       if (interval) clearInterval(interval)
     }
   }, [timerState.isRunning, isPaused, playSound])
