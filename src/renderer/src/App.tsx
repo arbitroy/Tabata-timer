@@ -90,29 +90,9 @@ const App: React.FC = () => {
       audio.currentTime = 0
       audio.play().catch((error) => {
         console.error('Error playing sound:', error)
-        console.log('Audio source:', audio.src)
-        console.log('Audio ready state:', audio.readyState)
       })
-    } else {
-      console.error('Audio element not found')
     }
   }, [])
-
-  const playSoundsForTransition = useCallback(
-    (isWorkout: boolean, isStart = false): void => {
-      if (isStart && soundSettings.onlyStart) {
-        playSound('countdown')
-        setTimeout(() => playSound('fightBell'), 3000)
-      } else if (isWorkout && soundSettings.beforeRound) {
-        playSound('fightBell')
-      } else if (!isWorkout && soundSettings.beforeRest) {
-        playSound('countdown')
-      } else if (soundSettings.allTransitions) {
-        isWorkout ? playSound('fightBell') : playSound('countdown')
-      }
-    },
-    [soundSettings, playSound]
-  )
 
   const togglePause = useCallback((): void => {
     setIsPaused((prev) => !prev)
@@ -163,29 +143,39 @@ const App: React.FC = () => {
       message.error('Please add at least one exercise before starting the timer.')
       return
     }
-
+    playSound('countdown')
     setShowCountdown(true)
     setCountdownNumber(3)
+  }, [timerState.exercises])
 
-    const countdownInterval = setInterval(() => {
-      setCountdownNumber((prev) => {
-        if (prev === 1) {
-          clearInterval(countdownInterval)
-          setShowCountdown(false)
-          setTimerState((prev) => ({
-            ...prev,
-            currentTime: prev.workoutTime,
-            currentRound: 1,
-            isWorkout: true,
-            isRunning: true
-          }))
-          playSoundsForTransition(true, true)
-        }
-        return prev - 1
-      })
-    }, 1000)
-  }, [timerState.exercises, timerState.workoutTime, playSoundsForTransition])
+  // Countdown logic
+  useEffect(() => {
+    let interval: NodeJS.Timeout | undefined
+    if (showCountdown) {
+      interval = setInterval(() => {
+        setCountdownNumber((prev) => {
+          if (prev === 1) {
+            clearInterval(interval)
+            setShowCountdown(false)
+            setTimerState((prevState) => ({
+              ...prevState,
+              currentTime: prevState.workoutTime,
+              currentRound: 1,
+              isWorkout: true,
+              isRunning: true
+            }))
+            setIsPaused(false)
+          }
+          return prev - 1
+        })
+      }, 1000)
+    }
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [showCountdown, playSound])
 
+  // Main timer logic
   useEffect(() => {
     let interval: NodeJS.Timeout | undefined
     if (timerState.isRunning && !isPaused) {
@@ -194,7 +184,12 @@ const App: React.FC = () => {
           const newState = { ...prev }
           newState.currentTime--
 
-          if (newState.currentTime <= 0) {
+          // Play countdown sound for last 3 seconds of each period
+          if (newState.currentTime <= 4 && newState.currentTime > 0) {
+            playSound('countdown')
+          }
+
+          if (newState.currentTime < 0) {
             if (newState.isWorkout) {
               if (newState.currentRound >= newState.totalRounds) {
                 clearInterval(interval)
@@ -204,27 +199,23 @@ const App: React.FC = () => {
               }
               newState.isWorkout = false
               newState.currentTime = newState.restTime
-              playSoundsForTransition(false)
             } else {
               newState.isWorkout = true
               newState.currentTime = newState.workoutTime
               newState.currentRound++
               newState.currentExerciseIndex =
                 (newState.currentExerciseIndex + 1) % newState.exercises.length
-              playSoundsForTransition(true)
             }
-          } else if (newState.currentTime === 3) {
-            playSoundsForTransition(newState.isWorkout)
           }
 
           return newState
         })
       }, 1000)
     }
-    return (): void => {
+    return () => {
       if (interval) clearInterval(interval)
     }
-  }, [timerState.isRunning, isPaused, playSoundsForTransition])
+  }, [timerState.isRunning, isPaused, playSound])
 
   const resetTimer = useCallback((): void => {
     setTimerState((prev) => ({
@@ -235,6 +226,7 @@ const App: React.FC = () => {
       currentExerciseIndex: 0,
       isRunning: false
     }))
+    setIsPaused(false)
     setShowScoreInput(false)
   }, [])
 
@@ -362,19 +354,21 @@ const App: React.FC = () => {
               style={{ marginTop: '20px' }}
             />
             <Button.Group style={{ marginTop: '20px' }}>
-              <Button
-                type="primary"
-                icon={
-                  timerState.isRunning && !isPaused ? (
-                    <PauseCircleOutlined />
-                  ) : (
-                    <PlayCircleOutlined />
-                  )
-                }
-                onClick={timerState.isRunning ? togglePause : startTimer}
-              >
-                {timerState.isRunning && !isPaused ? 'Pause' : 'Start'}
-              </Button>
+              {!timerState.isRunning && !isPaused && (
+                <Button type="primary" icon={<PlayCircleOutlined />} onClick={startTimer}>
+                  Start
+                </Button>
+              )}
+              {timerState.isRunning && !isPaused && (
+                <Button type="primary" icon={<PauseCircleOutlined />} onClick={togglePause}>
+                  Pause
+                </Button>
+              )}
+              {isPaused && (
+                <Button type="primary" icon={<PlayCircleOutlined />} onClick={togglePause}>
+                  Resume
+                </Button>
+              )}
               <Button icon={<ReloadOutlined />} onClick={resetTimer}>
                 Reset
               </Button>
