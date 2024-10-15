@@ -60,6 +60,7 @@ const App: React.FC = () => {
   const buzzerAudioRef = useRef<HTMLAudioElement | null>(null)
   const whistleAudioRef = useRef<HTMLAudioElement | null>(null)
   const celebrationAudioRef = useRef<HTMLAudioElement | null>(null)
+  const lastPlayedRef = useRef<number>(0)
 
   useEffect(() => {
     fightBellAudioRef.current = new Audio(fightBellSound)
@@ -143,25 +144,39 @@ const App: React.FC = () => {
   useEffect(() => {
     let interval: NodeJS.Timeout | undefined
     if (showCountdown) {
-      playSound('countdown') // Play sound immediately when countdown starts
+      const playCountdown = (): void => {
+        if (countdownAudioRef.current) {
+          countdownAudioRef.current.currentTime = 0
+          countdownAudioRef.current
+            .play()
+            .catch((error) => console.error('Error playing countdown:', error))
+        }
+      }
+
+      playCountdown() // Play sound immediately when countdown starts
+
       interval = setInterval(() => {
         setCountdownNumber((prev) => {
-          if (prev === 1) {
+          if (prev <= 1) {
             clearInterval(interval)
             setShowCountdown(false)
             playInitialFightBell()
             return prev
           }
-          const newCount = prev - 1
-          playSound('countdown') // Play sound for the next number
-          return newCount
+          playCountdown() // Play sound for the next number
+          return prev - 1
         })
       }, 1000)
     }
+
     return (): void => {
       if (interval) clearInterval(interval)
+      if (countdownAudioRef.current) {
+        countdownAudioRef.current.pause()
+        countdownAudioRef.current.currentTime = 0
+      }
     }
-  }, [showCountdown, playSound, playInitialFightBell])
+  }, [showCountdown, playInitialFightBell])
 
   // Main timer logic
   useEffect(() => {
@@ -179,9 +194,12 @@ const App: React.FC = () => {
             newState.currentTime <= 3 &&
             newState.currentTime > 0
           ) {
-            playSound('countdown')
+            const now = Date.now()
+            if (now - lastPlayedRef.current > 900) {
+              playSound('countdown')
+              lastPlayedRef.current = now
+            }
           }
-
           if (newState.currentTime < 0) {
             if (newState.isBetweenCircuitsRest) {
               newState.isBetweenCircuitsRest = false
