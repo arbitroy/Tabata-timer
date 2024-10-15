@@ -1,4 +1,3 @@
-
 # Tabata Timer
 
 The **Tabata Timer** is a simple, customizable workout timer built using React, Vite, and Electron. It allows users to time their high-intensity interval training (HIIT) exercises, particularly suited for Tabata-style workouts.
@@ -7,16 +6,16 @@ The **Tabata Timer** is a simple, customizable workout timer built using React, 
 
 ## Features
 
-* **Customizable Interval Settings** : Set work time, rest time, and the number of rounds for your Tabata workout.
-* **Visual and Audio Cues** : Visual progress bars and sound alerts keep you on track during your workout.
-* **Electron-based Application** : Easily runs as a desktop app on various operating systems.
-* **Lightweight and Fast** : Built with Vite for fast development and performance.
+- **Customizable Interval Settings** : Set work time, rest time, and the number of rounds for your Tabata workout.
+- **Visual and Audio Cues** : Visual progress bars and sound alerts keep you on track during your workout.
+- **Electron-based Application** : Easily runs as a desktop app on various operating systems.
+- **Lightweight and Fast** : Built with Vite for fast development and performance.
 
 ## Technologies Used
 
-* **React** : JavaScript library for building the user interface.
-* **Vite** : Build tool that provides fast, lightweight bundling and development.
-* **Electron** : Framework for building cross-platform desktop apps.
+- **React** : JavaScript library for building the user interface.
+- **Vite** : Build tool that provides fast, lightweight bundling and development.
+- **Electron** : Framework for building cross-platform desktop apps.
 
 ## Installation
 
