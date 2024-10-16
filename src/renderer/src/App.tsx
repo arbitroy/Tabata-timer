@@ -7,9 +7,15 @@ import {
   Card,
   Modal,
   InputNumber,
-  ConfigProvider
+  ConfigProvider,
+  Collapse
 } from 'antd'
-import { PlayCircleOutlined, PauseCircleOutlined, ReloadOutlined } from '@ant-design/icons'
+import {
+  PlayCircleOutlined,
+  PauseCircleOutlined,
+  ReloadOutlined,
+  SettingOutlined
+} from '@ant-design/icons'
 import 'antd/dist/reset.css'
 import fightBellSound from './assets/sounds/fight-bell.mp3'
 import countdownSound from './assets/sounds/countdown.mp3'
@@ -17,8 +23,9 @@ import buzzerSound from './assets/sounds/buzzer.mp3'
 import whistleSound from './assets/sounds/whistle.mp3'
 import celebrationSound from './assets/sounds/celebration.mp3'
 
-const { Header, Sider, Content } = Layout
+const { Header, Content } = Layout
 const { Title, Text } = Typography
+const { Panel } = Collapse
 
 interface TimerState {
   currentTime: number
@@ -60,7 +67,7 @@ const App: React.FC = () => {
   const buzzerAudioRef = useRef<HTMLAudioElement | null>(null)
   const whistleAudioRef = useRef<HTMLAudioElement | null>(null)
   const celebrationAudioRef = useRef<HTMLAudioElement | null>(null)
-  const lastPlayedRef = useRef<number>(0)
+  const hasPlayedCountdownRef = useRef<boolean>(false)
 
   useEffect(() => {
     fightBellAudioRef.current = new Audio(fightBellSound)
@@ -189,18 +196,15 @@ const App: React.FC = () => {
 
           // Play countdown sound for last 3 seconds of rest
           if (
-            !newState.isWorkout &&
-            !newState.isBetweenCircuitsRest &&
-            newState.currentTime <= 3 &&
-            newState.currentTime > 0
+            (!newState.isWorkout || newState.isBetweenCircuitsRest) &&
+            newState.currentTime === 3 &&
+            !hasPlayedCountdownRef.current
           ) {
-            const now = Date.now()
-            if (now - lastPlayedRef.current > 900) {
-              playSound('countdown')
-              lastPlayedRef.current = now
-            }
+            playSound('countdown')
+            hasPlayedCountdownRef.current = true
           }
           if (newState.currentTime < 0) {
+            hasPlayedCountdownRef.current = false
             if (newState.isBetweenCircuitsRest) {
               newState.isBetweenCircuitsRest = false
               newState.isWorkout = true
@@ -241,7 +245,6 @@ const App: React.FC = () => {
       if (interval) clearInterval(interval)
     }
   }, [timerState.isRunning, isPaused, isInitialCountdownFinished, playSound])
-
   const resetTimer = useCallback((): void => {
     setTimerState((prev) => ({
       ...prev,
@@ -309,78 +312,19 @@ const App: React.FC = () => {
             Tabata Timer
           </Title>
         </Header>
-        <Layout>
-          <Sider width={300} style={{ background: '#f0f2f5' }}>
+        <Content style={{ padding: '24px', background: '#fff' }}>
+          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
             <Card
-              title="Timer Settings"
-              style={{ margin: '20px' }}
-              headStyle={{ background: '#5B616A', color: 'white' }}
-            >
-              <div style={{ marginBottom: '10px' }}>
-                <Text strong>Circuits:</Text>
-                <InputNumber
-                  min={1}
-                  max={10}
-                  value={timerState.totalCircuits}
-                  onChange={(value) => handleSettingChange('totalCircuits', value as number)}
-                  style={{ width: '100%' }}
-                />
-              </div>
-              <div style={{ marginBottom: '10px' }}>
-                <Text strong>Rounds per Circuit:</Text>
-                <InputNumber
-                  min={1}
-                  max={100}
-                  value={timerState.totalRounds}
-                  onChange={(value) => handleSettingChange('totalRounds', value as number)}
-                  style={{ width: '100%' }}
-                />
-              </div>
-              <div style={{ marginBottom: '10px' }}>
-                <Text strong>Workout Time (seconds):</Text>
-                <InputNumber
-                  min={1}
-                  max={300}
-                  value={timerState.workoutTime}
-                  onChange={(value) => handleSettingChange('workoutTime', value as number)}
-                  style={{ width: '100%' }}
-                />
-              </div>
-              <div style={{ marginBottom: '10px' }}>
-                <Text strong>Rest Time (seconds):</Text>
-                <InputNumber
-                  min={1}
-                  max={300}
-                  value={timerState.restTime}
-                  onChange={(value) => handleSettingChange('restTime', value as number)}
-                  style={{ width: '100%' }}
-                />
-              </div>
-              <div style={{ marginBottom: '10px' }}>
-                <Text strong>Between Circuits Rest (seconds):</Text>
-                <InputNumber
-                  min={1}
-                  max={300}
-                  value={timerState.betweenCircuitsRestTime}
-                  onChange={(value) =>
-                    handleSettingChange('betweenCircuitsRestTime', value as number)
-                  }
-                  style={{ width: '100%' }}
-                />
-              </div>
-            </Card>
-          </Sider>
-          <Content style={{ margin: '24px 16px', padding: 24, background: '#fff', minHeight: 280 }}>
-            <Card
-              title="Tabata Timer"
-              style={{ textAlign: 'center' }}
-              headStyle={{ background: '#5B616A', color: 'white' }}
+              style={{ textAlign: 'center', marginBottom: '20px' }}
+              bodyStyle={{ padding: '40px' }}
             >
               <Title
                 style={{
-                  fontSize: '140px',
+                  fontSize: '180px',
+                  lineHeight: '1',
+                  marginBottom: '20px',
                   color: timerState.isBetweenCircuitsRest
-                    ? '#1890ff'
+                    ? '#CE2D4F'
                     : timerState.isWorkout
                       ? '#275DAD'
                       : '#FC5130'
@@ -388,30 +332,26 @@ const App: React.FC = () => {
               >
                 {updateTimerDisplay()}
               </Title>
-              <Text strong style={{ fontSize: '24px' }}>
+              <Text strong style={{ fontSize: '28px', display: 'block', marginBottom: '20px' }}>
                 Circuit: {timerState.currentCircuit}/{timerState.totalCircuits} | Round:{' '}
                 {timerState.currentRound}/{timerState.totalRounds}
               </Text>
               <Progress
                 percent={updateProgressBar()}
                 showInfo={false}
-                style={{ marginTop: '20px' }}
+                style={{ marginBottom: '30px' }}
                 strokeColor={
                   timerState.isBetweenCircuitsRest
-                    ? '#1890ff'
+                    ? '#CE2D4F'
                     : timerState.isWorkout
                       ? '#275DAD'
                       : '#FC5130'
                 }
+                strokeWidth={15}
               />
-              <Button.Group style={{ marginTop: '20px' }}>
+              <Button.Group size="large">
                 {!timerState.isRunning && !isPaused && (
-                  <Button
-                    type="primary"
-                    icon={<PlayCircleOutlined />}
-                    onClick={startTimer}
-                    size="large"
-                  >
+                  <Button type="primary" icon={<PlayCircleOutlined />} onClick={startTimer}>
                     Start
                   </Button>
                 )}
@@ -420,7 +360,6 @@ const App: React.FC = () => {
                     type="primary"
                     icon={<PauseCircleOutlined />}
                     onClick={togglePause}
-                    size="large"
                     danger
                   >
                     Pause
@@ -431,22 +370,73 @@ const App: React.FC = () => {
                     type="primary"
                     icon={<PlayCircleOutlined />}
                     onClick={togglePause}
-                    size="large"
                     style={{ background: '#FC5130', borderColor: '#FC5130' }}
                   >
                     Resume
                   </Button>
                 )}
-                <Button icon={<ReloadOutlined />} onClick={resetTimer} size="large">
+                <Button icon={<ReloadOutlined />} onClick={resetTimer}>
                   Reset
                 </Button>
               </Button.Group>
             </Card>
-            <Card
-              title="Workout Summary"
-              style={{ marginTop: '20px' }}
-              headStyle={{ background: '#5B616A', color: 'white' }}
-            >
+            <Collapse>
+              <Panel header="Timer Settings" key="1" extra={<SettingOutlined />}>
+                <div style={{ marginBottom: '10px' }}>
+                  <Text strong>Circuits:</Text>
+                  <InputNumber
+                    min={1}
+                    max={10}
+                    value={timerState.totalCircuits}
+                    onChange={(value) => handleSettingChange('totalCircuits', value as number)}
+                    style={{ width: '100%' }}
+                  />
+                </div>
+                <div style={{ marginBottom: '10px' }}>
+                  <Text strong>Rounds per Circuit:</Text>
+                  <InputNumber
+                    min={1}
+                    max={100}
+                    value={timerState.totalRounds}
+                    onChange={(value) => handleSettingChange('totalRounds', value as number)}
+                    style={{ width: '100%' }}
+                  />
+                </div>
+                <div style={{ marginBottom: '10px' }}>
+                  <Text strong>Workout Time (seconds):</Text>
+                  <InputNumber
+                    min={1}
+                    max={300}
+                    value={timerState.workoutTime}
+                    onChange={(value) => handleSettingChange('workoutTime', value as number)}
+                    style={{ width: '100%' }}
+                  />
+                </div>
+                <div style={{ marginBottom: '10px' }}>
+                  <Text strong>Rest Time (seconds):</Text>
+                  <InputNumber
+                    min={1}
+                    max={300}
+                    value={timerState.restTime}
+                    onChange={(value) => handleSettingChange('restTime', value as number)}
+                    style={{ width: '100%' }}
+                  />
+                </div>
+                <div style={{ marginBottom: '10px' }}>
+                  <Text strong>Between Circuits Rest (seconds):</Text>
+                  <InputNumber
+                    min={1}
+                    max={300}
+                    value={timerState.betweenCircuitsRestTime}
+                    onChange={(value) =>
+                      handleSettingChange('betweenCircuitsRestTime', value as number)
+                    }
+                    style={{ width: '100%' }}
+                  />
+                </div>
+              </Panel>
+            </Collapse>
+            <Card title="Workout Summary" style={{ marginTop: '20px' }}>
               <Text strong>Total Workout Time: {totalWorkoutTime}</Text>
               <br />
               <Text strong>
@@ -458,11 +448,13 @@ const App: React.FC = () => {
                 </span>
               </Text>
             </Card>
-          </Content>
-        </Layout>
+          </div>
+        </Content>
       </Layout>
       <Modal title="Countdown" open={showCountdown} footer={null} closable={false} centered>
-        <Title style={{ textAlign: 'center', color: '#1890ff' }}>{countdownNumber}</Title>
+        <Title style={{ textAlign: 'center', color: '#1890ff', fontSize: '120px' }}>
+          {countdownNumber}
+        </Title>
       </Modal>
     </ConfigProvider>
   )
